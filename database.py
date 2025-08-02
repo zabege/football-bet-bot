@@ -1,5 +1,5 @@
-import os
 import json
+import os
 from datetime import datetime
 from typing import List, Tuple, Optional
 
@@ -13,8 +13,20 @@ class Database:
         self._load_data()
     
     def _load_data(self):
-        """Загрузка данных из файла"""
+        """Загрузка данных из файла или переменных окружения"""
         try:
+            # Сначала пробуем загрузить из Railway Variables
+            railway_data = os.getenv('BOT_DATA_JSON')
+            if railway_data:
+                data = json.loads(railway_data)
+                self.users = data.get('users', {})
+                self.matches = data.get('matches', {})
+                self.bets = data.get('bets', {})
+                self.scores = data.get('scores', {})
+                print("📊 Данные загружены из Railway Variables")
+                return
+            
+            # Если нет Railway Variables, загружаем из файла
             if os.path.exists(self.db_path):
                 with open(self.db_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
@@ -22,6 +34,7 @@ class Database:
                     self.matches = data.get('matches', {})
                     self.bets = data.get('bets', {})
                     self.scores = data.get('scores', {})
+                    print("📊 Данные загружены из файла")
         except Exception as e:
             print(f"Ошибка загрузки данных: {e}")
             # Если файл поврежден, начинаем с пустых данных
@@ -31,7 +44,7 @@ class Database:
             self.scores = {}
     
     def _save_data(self):
-        """Сохранение данных в файл"""
+        """Сохранение данных в файл и Railway Variables"""
         try:
             data = {
                 'users': self.users,
@@ -39,8 +52,27 @@ class Database:
                 'bets': self.bets,
                 'scores': self.scores
             }
+            
+            # Сохраняем в файл (для локальной разработки)
             with open(self.db_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # Сохраняем в Railway Variables (для продакшена)
+            if os.getenv('RAILWAY_ENVIRONMENT'):
+                import subprocess
+                try:
+                    json_str = json.dumps(data, ensure_ascii=False)
+                    subprocess.run([
+                        'railway', 'variables', 'set', 
+                        'BOT_DATA_JSON=' + json_str
+                    ], check=True, capture_output=True)
+                    print("📊 Данные сохранены в Railway Variables")
+                except Exception as e:
+                    print(f"Ошибка сохранения в Railway Variables: {e}")
+                    print("📊 Данные сохранены только в файл")
+            else:
+                print("📊 Данные сохранены в файл")
+                
         except Exception as e:
             print(f"Ошибка сохранения данных: {e}")
     

@@ -116,6 +116,8 @@ class FootballBetBot:
 • `/bet` - Сделать ставку
 • `/standings` - Таблица результатов
 • `/stats` - Статистика базы данных
+• `/save_data` - Сохранить данные (для админов)
+• `/add_demo_results` - Добавить демо-результаты (для админов)
 • `/help` - Эта справка
 
 🎯 **Правила начисления баллов:**
@@ -126,6 +128,8 @@ class FootballBetBot:
 ⚽ **Поддерживаемые команды:**
 • Реал Мадрид
 • Барселона
+
+💾 **Сохранение данных:** Данные автоматически сохраняются в Railway Variables
 
 Удачных ставок! 🍀
         """
@@ -429,6 +433,36 @@ class FootballBetBot:
             print(f"Ошибка при добавлении демо-результатов: {e}")
             await update.message.reply_text("❌ Произошла ошибка при добавлении демо-результатов.")
     
+    async def save_data(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Ручное сохранение данных в Railway Variables"""
+        user_id = update.effective_user.id
+        
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+            return
+        
+        try:
+            # Принудительно сохраняем данные
+            self.db._save_data()
+            
+            # Проверяем, что данные сохранились
+            total_users = len(self.db.users)
+            total_matches = len(self.db.matches)
+            total_bets = len(self.db.bets)
+            
+            await update.message.reply_text(
+                f"✅ Данные успешно сохранены!\n\n"
+                f"📊 Статистика:\n"
+                f"👥 Пользователей: {total_users}\n"
+                f"⚽ Матчей: {total_matches}\n"
+                f"💰 Ставок: {total_bets}\n\n"
+                f"💾 Данные сохранены в Railway Variables"
+            )
+            
+        except Exception as e:
+            print(f"Ошибка при сохранении данных: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при сохранении данных.")
+    
     async def bet(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик команды /bet - показывает 10 ближайших матчей для ставок"""
         user_id = update.effective_user.id
@@ -697,6 +731,7 @@ def main():
     application.add_handler(CommandHandler("stats", bot.stats))
     application.add_handler(CommandHandler("standings", bot.standings))
     application.add_handler(CommandHandler("add_demo_results", bot.add_demo_results)) # Добавляем обработчик для добавления демо-результатов
+    application.add_handler(CommandHandler("save_data", bot.save_data)) # Добавляем обработчик для сохранения данных
     
     # Добавляем ConversationHandler для ставок
     conv_handler = ConversationHandler(
