@@ -338,7 +338,7 @@ class FootballBetBot:
                 parse_mode='Markdown'
             )
             
-            return CHOOSING_MATCH
+            return SELECTING_MATCH
             
         except Exception as e:
             print(f"Ошибка при получении матчей для ставок: {e}")
@@ -404,7 +404,7 @@ class FootballBetBot:
                 parse_mode='Markdown'
             )
             
-            return CHOOSING_WINNER
+            return SELECTING_WINNER
         
         elif query.data.startswith("winner_"):
             winner = query.data.split("_")[1]
