@@ -190,4 +190,24 @@ class Database:
                 points += 3
             
             # Обновляем баллы ставки
-            self.update_bet_points(bet['user_id'], points) 
+            self.update_bet_points(bet['user_id'], points)
+    
+    def get_last_results(self, count: int = 5) -> List[dict]:
+        """Получение последних завершенных матчей с результатами"""
+        finished_matches = []
+        
+        for match_id, match_data in self.matches.items():
+            if match_data['status'] == 'finished':
+                finished_matches.append({
+                    'id': match_id,
+                    'home_team': match_data['home_team'],
+                    'away_team': match_data['away_team'],
+                    'home_score': match_data['home_score'],
+                    'away_score': match_data['away_score'],
+                    'match_date': match_data['match_date'],
+                    'competition': match_data['competition']
+                })
+        
+        # Сортируем по дате (новые сначала) и берем последние count матчей
+        finished_matches.sort(key=lambda x: x['match_date'], reverse=True)
+        return finished_matches[:count] 

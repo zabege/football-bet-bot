@@ -112,6 +112,7 @@ class FootballBetBot:
 • `/start` - Начать работу с ботом
 • `/calendar` - Календарь ближайших матчей
 • `/next` - Ближайший матч
+• `/last_results` - Последние результаты матчей
 • `/bet` - Сделать ставку
 • `/standings` - Таблица результатов
 • `/stats` - Статистика базы данных
@@ -300,6 +301,133 @@ class FootballBetBot:
         except Exception as e:
             print(f"Ошибка при получении ближайшего матча: {e}")
             await update.message.reply_text("❌ Произошла ошибка при получении ближайшего матча.")
+    
+    async def last_results(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /last_results - показывает последние 5 матчей с результатами"""
+        user_id = update.effective_user.id
+        
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+            return
+        
+        try:
+            # Получаем последние 5 завершенных матчей
+            results = self.db.get_last_results(5)
+            
+            if not results:
+                await update.message.reply_text("📊 Пока нет завершенных матчей с результатами.")
+                return
+            
+            # Формируем текст с результатами
+            results_text = "🏆 **ПОСЛЕДНИЕ РЕЗУЛЬТАТЫ МАТЧЕЙ**\n\n"
+            
+            for i, match in enumerate(results, 1):
+                home_team = match['home_team']
+                away_team = match['away_team']
+                home_score = match['home_score']
+                away_score = match['away_score']
+                match_date = datetime.fromisoformat(match['match_date'])
+                formatted_date = match_date.strftime('%d.%m.%Y')
+                competition = match['competition']
+                
+                # Определяем эмодзи для команд
+                home_emoji = "⚪" if "Real Madrid" in home_team else "🔵" if "Barcelona" in home_team else "⚽"
+                away_emoji = "⚪" if "Real Madrid" in away_team else "🔵" if "Barcelona" in away_team else "⚽"
+                
+                # Определяем результат
+                if home_score > away_score:
+                    result_emoji = "🏆"
+                    result_text = f"Победа {home_team}"
+                elif away_score > home_score:
+                    result_emoji = "🏆"
+                    result_text = f"Победа {away_team}"
+                else:
+                    result_emoji = "🤝"
+                    result_text = "Ничья"
+                
+                results_text += f"{i}. {home_emoji} **{home_team}** {home_score}:{away_score} **{away_team}** {away_emoji}\n"
+                results_text += f"   {result_emoji} {result_text}\n"
+                results_text += f"   📅 {formatted_date} | 🏆 {competition}\n\n"
+            
+            await update.message.reply_text(results_text, parse_mode='Markdown')
+            
+        except Exception as e:
+            print(f"Ошибка при получении последних результатов: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при получении результатов.")
+    
+    async def add_demo_results(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Добавление демо-результатов для тестирования"""
+        user_id = update.effective_user.id
+        
+        # Проверяем доступ только если список ALLOWED_USERS не пустой
+        if ALLOWED_USERS and user_id not in ALLOWED_USERS:
+            return
+        
+        try:
+            # Добавляем демо-матчи с результатами
+            demo_matches = [
+                {
+                    'id': 1001,
+                    'home_team': 'Real Madrid',
+                    'away_team': 'Barcelona',
+                    'home_score': 2,
+                    'away_score': 1,
+                    'match_date': '2025-01-15T20:00:00',
+                    'competition': 'La Liga',
+                    'status': 'finished'
+                },
+                {
+                    'id': 1002,
+                    'home_team': 'Barcelona',
+                    'away_team': 'Real Madrid',
+                    'home_score': 1,
+                    'away_score': 1,
+                    'match_date': '2025-01-20T21:00:00',
+                    'competition': 'Copa del Rey',
+                    'status': 'finished'
+                },
+                {
+                    'id': 1003,
+                    'home_team': 'Real Madrid',
+                    'away_team': 'Barcelona',
+                    'home_score': 3,
+                    'away_score': 2,
+                    'match_date': '2025-01-25T19:30:00',
+                    'competition': 'Champions League',
+                    'status': 'finished'
+                },
+                {
+                    'id': 1004,
+                    'home_team': 'Barcelona',
+                    'away_team': 'Real Madrid',
+                    'home_score': 0,
+                    'away_score': 2,
+                    'match_date': '2025-01-30T20:45:00',
+                    'competition': 'La Liga',
+                    'status': 'finished'
+                },
+                {
+                    'id': 1005,
+                    'home_team': 'Real Madrid',
+                    'away_team': 'Barcelona',
+                    'home_score': 1,
+                    'away_score': 0,
+                    'match_date': '2025-02-05T21:15:00',
+                    'competition': 'Super Cup',
+                    'status': 'finished'
+                }
+            ]
+            
+            # Добавляем матчи в базу данных
+            for match in demo_matches:
+                self.db.matches[str(match['id'])] = match
+                self.db._save_data()
+            
+            await update.message.reply_text("✅ Добавлено 5 демо-результатов матчей! Используйте /last_results для просмотра.")
+            
+        except Exception as e:
+            print(f"Ошибка при добавлении демо-результатов: {e}")
+            await update.message.reply_text("❌ Произошла ошибка при добавлении демо-результатов.")
     
     async def bet(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик команды /bet - показывает 10 ближайших матчей для ставок"""
@@ -565,8 +693,10 @@ def main():
     application.add_handler(CommandHandler("matches", bot.matches))
     application.add_handler(CommandHandler("calendar", bot.calendar))
     application.add_handler(CommandHandler("next", bot.next_match))
+    application.add_handler(CommandHandler("last_results", bot.last_results)) # Добавляем обработчик для последних результатов
     application.add_handler(CommandHandler("stats", bot.stats))
     application.add_handler(CommandHandler("standings", bot.standings))
+    application.add_handler(CommandHandler("add_demo_results", bot.add_demo_results)) # Добавляем обработчик для добавления демо-результатов
     
     # Добавляем ConversationHandler для ставок
     conv_handler = ConversationHandler(
