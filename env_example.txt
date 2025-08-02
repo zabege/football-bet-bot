@@ -1,0 +1,9 @@
+# Telegram Bot Token (получите у @BotFather)
+BOT_TOKEN=your_telegram_bot_token_here
+
+# Football API Key (опционально, для получения реальных данных о матчах)
+# Можно получить на https://www.football-data.org/
+FOOTBALL_API_KEY=your_football_api_key_here
+
+# Разрешенные пользователи (Telegram ID)
+# Замените на реальные ID пользователей в config.py 
